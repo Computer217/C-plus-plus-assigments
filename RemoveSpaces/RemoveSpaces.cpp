@@ -11,14 +11,11 @@ string RemoveSpaces( const string &strIn)
     string temporary;
     int len = strIn.size();
 
-    for (int i = 0; i < len; i++){
+    for (int i = 0; i <= len; i++){
 	    if (strIn[i] != ' '){
 		    temporary = temporary + strIn[i];
 	    }
     }
-
-
-
 
     return temporary;
 }
