@@ -52,9 +52,6 @@ void RemoveDupPointers(vector<string *> &arrayPtrs)
 
     //rewrite arrayPtrs
     for (int i=0; i<arrayTest.size();i++){
-        if (arrayTest.size() == 0){
-            break;
-        }
         else{
             arrayPtrs.push_back(arrayTest[i]);
         }
