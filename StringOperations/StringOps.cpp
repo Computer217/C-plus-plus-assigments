@@ -144,7 +144,8 @@ void GetDuplicateChars(const std::vector<char> &strInput, std::set<char> &setDup
     }
 
     
-    why does this work
+    why does this not work -> doesnt work bc you cant use a range loop on a map
+    only on vector/array
     for(char d : mapDistinct){
         if (mapDistinct[d] > 1){
             setDupChars.insert(d);
