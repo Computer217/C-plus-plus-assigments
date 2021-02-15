@@ -7,7 +7,7 @@ OFILES= $(CPPFILES:.cpp=.o)
 CC = g++
 LIBPATH =
 
-CFLAGS = -O3 -std=c++11 -Wall -I.
+CFLAGS = -O4 -std=c++11 -Wall -I.
 
 all: ArrayofStrings
 
