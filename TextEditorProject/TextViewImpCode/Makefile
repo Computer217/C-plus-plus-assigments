@@ -1,4 +1,4 @@
-CPPFILES = ECEditorTest.cpp ECTextViewImp.cpp
+CPPFILES = ECCommand.cpp ECEditorController.cpp ECEditorView.cpp ECTextDocument.cpp ECTextViewImp.cpp
 
 HFILES = $(CPPFILES:.cpp=.h)
 

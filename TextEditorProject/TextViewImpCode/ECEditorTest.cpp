@@ -31,3 +31,8 @@ int main(int argc, char *argv[])
     
     return 0;
 }
+
+//ECTextViewImp, need to compose an object of it in edito view
+//EditorViewController will cause changes to the view 
+//Model is the ECTextDocument 
+
