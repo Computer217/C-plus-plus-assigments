@@ -63,6 +63,27 @@ class RemoveCommand : public ECCommand {
         int column;
 };
 
+class BackspaceCommand: public ECCommand {
+    public:
+        BackspaceCommand(ECTextDocument &document, int row, int column): doc(document), row(row), column(column){}
+        virtual void Execute();
+        virtual void UnExecute();
+    private:
+        ECTextDocument &doc;
+        int row;
+        int column;
+};
+
+class RemoveLineCommand: public ECCommand {
+    public:
+        RemoveLineCommand(ECTextDocument &document, int row): doc(document), row(row){}
+        virtual void Execute();
+        virtual void UnExecute();
+    private:
+        ECTextDocument &doc;
+        int row;
+};
+
 
 // **********************************************************
 // Controller for text document
@@ -76,6 +97,8 @@ public:
     void RemoveTextAt(int row, int column);
     void AddRow(string value);
     void NewLine(int row, string key);
+    void RemoveLine(int row);
+    void Backspace(int row, int column);
     bool Undo();                                                            // undo any change you did to the text
     bool Redo();                                                            // redo the change to the text
     
@@ -110,13 +133,13 @@ public:
     void NewLine(int row, string key){
         listChars.insert(listChars.begin()+row, key);
     }
+    void RemoveLineAt(int row){
+        listChars.erase(listChars.begin()+row);
+    }
     void EraseText(int row, int column){
         listChars[row].erase(listChars[row].begin() + column, listChars[row].end());
     }
 
-
-
-    
 private:
     ECTextDocumentCtrl docCtrl;
     std::vector<string> listChars = {""};

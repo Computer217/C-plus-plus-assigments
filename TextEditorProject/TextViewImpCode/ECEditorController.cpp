@@ -15,7 +15,7 @@ ECEditorController :: ECEditorController(ECTextViewImp &WndIn): window(WndIn), d
 void ECEditorController :: Update(){
     int key = window.GetPressedKey();
 
-    if (key == ARROW_LEFT || key == ARROW_RIGHT || key == ARROW_UP || key == ARROW_DOWN || key == ENTER){
+    if (key == ARROW_LEFT || key == ARROW_RIGHT || key == ARROW_UP || key == ARROW_DOWN || key == ENTER || key == BACKSPACE){
         this->CursorUpdate(key);
     }
     else if (key>=32){   
@@ -23,12 +23,15 @@ void ECEditorController :: Update(){
     }
 }
 
-//Proccess Read Key
+//Proccess/Read Key
 void ECEditorController :: CursorUpdate(int key){
 
     switch (key) {
         case ENTER:
             AddRowAt();
+            break;
+        case BACKSPACE:
+            Backspace();
             break;
         case ARROW_RIGHT:
             cursorRight();
@@ -46,7 +49,7 @@ void ECEditorController :: CursorUpdate(int key){
             break;
 
     }
-
+    
     window.Refresh();
 }
 
@@ -83,8 +86,6 @@ void ECEditorController :: AddRowAt(){
         //Endline Enter Function [WORKING]
         window.InitRows(); 
 
-        //string test = " TEST";
-
         NewLine(window.GetCursorY()+1, empty_line);
 
         //set cursor down [WORKING]
@@ -96,24 +97,59 @@ void ECEditorController :: AddRowAt(){
         }
             
     }
+}
+
+//Delete Chars and Lines
+void ECEditorController :: Backspace(){
+
+    int cursorX = window.GetCursorX();
+    int cursorY = window.GetCursorY();
+
+    //Clear the view to change the model
+    window.InitRows(); 
+
+    //If at top of document; Do Nothing
+    if (cursorY == 0 && cursorX == 0){
+        return;
+    }
+    else if (document.GetLengthColumns(cursorY) == 0){
+        //If Backspace pressed on emptyline, line is removed
+        DocCtrl.RemoveLine(cursorY);
+        window.SetCursorY(cursorY-1);
+        window.SetCursorX(document.GetLengthColumns(cursorY-1));
+    }
+    else if (cursorX == 0){
+        //if cursor at beginning of the line
+        //move to the end of top line 
+        window.SetCursorY(cursorY-1);
+        window.SetCursorX(document.GetLengthColumns(cursorY-1));
+
+        //set the new cursor
+        int cursorX = window.GetCursorX();
+        int cursorY = window.GetCursorY();
+
+        //Backspace() Deletes one char based on cursor position
+        DocCtrl.Backspace(cursorY, cursorX);
+
+        //Move the cursor accordingly 
+        window.SetCursorX(cursorX-1);    
+    }
+    else{
+        //Backspace() Deletes one char based on cursor position
+        DocCtrl.Backspace(cursorY, cursorX);
+
+        //Move the cursor accordingly 
+        window.SetCursorX(cursorX-1);  
+    }
+    
+    //Refresh the view
+    for (auto str : document.GetChars()){
+        window.AddRow(str);
+    }
 
 }
 
-/*    else if (window.GetCursorX() == document.GetLengthColumns(window.GetCursorY())){
-        //at end of line, add line below current line
-        
-
-        if (window.GetCursorY() == document.GetLengthRows()-1){
-            DocCtrl.AddRow(empty_line);
-            window.AddRow(empty_line);
-
-            window.SetCursorX(0);
-            window.SetCursorY(window.GetCursorY()+1);
-            
-        }
-        */
-
-//Create a new Line, using document/view controller
+//Create a new Line
 void ECEditorController :: NewLine(int row, string key){
     DocCtrl.NewLine(row, key);
 }
@@ -170,7 +206,7 @@ void ECEditorController :: cursorDown(){
     }
 }
 
-//Handle insertig text
+//Handle insertig text to the document
 void ECEditorController :: CharUpdate(int key){
     window.InitRows(); //clear view
     string text = string(1, char(key));    

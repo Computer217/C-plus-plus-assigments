@@ -22,7 +22,7 @@ void InsertCommand :: Execute(){
 }
 
 void InsertCommand :: UnExecute(){
-  for (int i = 0; i < LCTI.size();i++){
+  for (int i=0; i<LCTI.size(); i++){
     doc.RemoveCharAt(row, column);
   }
 }
@@ -36,9 +36,6 @@ void RemoveCommand :: UnExecute(){
    //RemoveTextAt Unexecute
 }
 
-
-
-
 void AddCommand :: Execute(){
     doc.addrow(LCTI);
 }
@@ -47,13 +44,30 @@ void AddCommand :: UnExecute(){
   //need to remove the LTCI
 }
 
-
 void NewCommand :: Execute(){
     doc.NewLine(row, LCTI);
 }
 
 void NewCommand :: UnExecute(){
   //need to remove the LTCI
+}
+
+void BackspaceCommand :: Execute(){
+  doc.RemoveCharAt(row, column);
+}
+
+void BackspaceCommand :: UnExecute(){
+  //UnExecuteBackSpace
+  
+}
+
+void RemoveLineCommand :: Execute(){
+  doc.RemoveLineAt(row);
+}
+
+void RemoveLineCommand :: UnExecute(){
+  //UnExecuteBackSpace
+  
 }
 
 // **********************************************************
@@ -91,10 +105,24 @@ void ECTextDocumentCtrl :: AddRow(string value)
 void ECTextDocumentCtrl :: NewLine(int row, string key)
 {
   // your code
-  //cout << "document controller" << endl;
   histCmds.ExecuteCmd(new NewCommand(doc, row, key));
 
 }
+
+void ECTextDocumentCtrl :: RemoveLine(int row)
+{
+  histCmds.ExecuteCmd(new RemoveLineCommand(doc, row));
+}
+
+void ECTextDocumentCtrl :: Backspace(int row, int column)
+{
+  // your code
+  //cout << "document controller" << endl;
+  histCmds.ExecuteCmd(new BackspaceCommand(doc, row, column));
+
+}
+
+
 
 bool ECTextDocumentCtrl :: Undo()
 {
@@ -153,8 +181,6 @@ void ECTextDocument :: InsertCharAt(int row, int column, string ch)
 
 void ECTextDocument :: RemoveCharAt(int row, int column)
 {
-  // your code here
-
-  listChars[row].erase(column);
-
+  listChars[row].erase(column-1,1);
+  
 }

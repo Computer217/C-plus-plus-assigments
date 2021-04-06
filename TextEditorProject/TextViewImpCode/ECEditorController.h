@@ -26,6 +26,7 @@ public:
     void Update(); //modifying the model and then updating the view in update 
     void CursorUpdate(int key);
     void AddRowAt();
+    void Backspace();
     void NewLine(int row, string key);
     void cursorLeft();
     void cursorRight();
