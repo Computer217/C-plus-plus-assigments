@@ -13,7 +13,6 @@ ECEditorView :: ECEditorView(): window(ECTextViewImp()), ctrl(ECEditorController
     window.Attach(&ctrl);
 }
 
-
 ECEditorView :: ~ECEditorView(){}
 
 //StartView

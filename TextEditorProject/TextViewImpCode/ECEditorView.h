@@ -22,7 +22,7 @@ class ECEditorView{
             //clearRows before showing document()
             window.InitRows();
             //enter infinite loop
-            window.AddStatusRow("TextEditor", "Pablo", true);
+            window.AddStatusRow("Pablo's TextEditor", "Page: 1 ", true);
             window.Show();
         }
     

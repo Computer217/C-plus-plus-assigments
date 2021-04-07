@@ -6,10 +6,14 @@
 #include "ECTextDocument.h"
 #include "ECEditorController.h"
 #include "ECCommand.h"
+#include <iostream>
+#include <string>
+
+using namespace std;
 
 
 //Constructor
-ECEditorController :: ECEditorController(ECTextViewImp &WndIn): window(WndIn), document(ECTextDocument()), DocCtrl(document.GetCtrl()){}        // conroller constructor takes the document as input
+ECEditorController :: ECEditorController(ECTextViewImp &WndIn): window(WndIn), document(ECTextDocument()), DocCtrl(document.GetCtrl()), page(0){}
 
 //ReadKey from STDIO
 void ECEditorController :: Update(){
@@ -28,7 +32,7 @@ void ECEditorController :: CursorUpdate(int key){
 
     switch (key) {
         case ENTER:
-            AddRowAt();
+            Enter();
             break;
         case BACKSPACE:
             Backspace();
@@ -49,53 +53,108 @@ void ECEditorController :: CursorUpdate(int key){
             break;
 
     }
-    
+
     window.Refresh();
 }
 
+//AddRows() to the view depending on current window range
+void ECEditorController :: ViewLayout(){
+
+    //Set the status Row with correct Page Display
+    window.ClearStatusRows();
+    window.AddStatusRow("Pablo's TextEditor", "Page: " + to_string(page+1) + " ", true);
+
+    //Store copy of current page from document 
+    vector<string> Temp_view = document.GetChars();
+
+    int window_end;
+    int window_start = page * window.GetRowNumInView();
+    
+    //If the WindowView is greater than the amount of rows in the model 
+    if ((page+1) * window.GetRowNumInView() > document.GetLengthRows()){
+        //Make the window as big as the document 
+        window_end = document.GetLengthRows();
+
+        //Populate View
+        for(int i = window_start; i < window_end; i++){
+                window.AddRow(Temp_view[i]);
+        }
+    }
+    else{
+        //Make the window as big as the windowView
+        window_end = (page + 1) * window.GetRowNumInView();
+
+        //Populate View
+        for(int i = window_start; i < window_end; i++){
+            window.AddRow(Temp_view[i]);
+        }
+    }
+
+}
+
 //EnterKey Function Handles:
-//Endline Enter
 //MidLine Enter
-void ECEditorController :: AddRowAt(){
+//Endline Enter
+//Frontline Enter
+
+void ECEditorController :: Enter(){
     
     string empty_line = "";
     int cursorX = window.GetCursorX();
     int cursorY = window.GetCursorY();
 
-    if(cursorX < document.GetLengthColumns(cursorY)){
+    //Midline Enter [WORKING]
+    if(cursorX < document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY)){
         window.InitRows(); 
         string remaining_line = "";
         
         //Create Newline with remaining Text
-        for (int i = cursorX; i < document.GetLengthColumns(cursorY); i++){
-            remaining_line += document.GetCharAt(cursorY, i);
+        for (int i = cursorX; i < document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY); i++){
+            remaining_line += document.GetCharAt((page * window.GetRowNumInView()) + cursorY, i);
         }
         NewLine(window.GetCursorY()+1,remaining_line);
 
         //Remove Remaining text from current line 
-        DocCtrl.RemoveTextAt(cursorY, cursorX);
-
+        DocCtrl.RemoveTextAt((page * window.GetRowNumInView()) + cursorY, cursorX);
 
         //Refresh View
-        for (auto str : document.GetChars()){
-            window.AddRow(str);
-        }
+        ViewLayout();
 
     }
     else{
         //Endline Enter Function [WORKING]
-        window.InitRows(); 
-
-        NewLine(window.GetCursorY()+1, empty_line);
-
-        //set cursor down [WORKING]
-        window.SetCursorX(0);
-        window.SetCursorY(window.GetCursorY()+1);
-
-        for (auto str : document.GetChars()){
-            window.AddRow(str);
-        }
+        //***********************
+        //PAGE LAYOUT MANAGMENT *
+        //***********************
+        //-1 because it needs to account for index vs size
+        if (cursorY == window.GetRowNumInView()-1){
+            window.InitRows();
             
+            //Increase Pages
+            page += 1; 
+
+            NewLine(0, empty_line);
+
+            window.SetCursorX(0);
+            window.SetCursorY(0);
+
+            ViewLayout();
+
+        }
+        else{
+            //FrontLine Enter
+            window.InitRows(); 
+
+            //Add a row on top
+            NewLine(window.GetCursorY()+1, empty_line);
+
+            window.SetCursorX(0);
+            window.SetCursorY(window.GetCursorY()+1);
+
+            //Refresh the view
+            ViewLayout();
+
+        }     
     }
 }
 
@@ -109,58 +168,53 @@ void ECEditorController :: Backspace(){
     window.InitRows(); 
 
     //If at top of document; Do Nothing
-    if (cursorY == 0 && cursorX == 0){
+    if (cursorY == 0 && cursorX == 0 && page == 0){
         return;
     }
-    else if (document.GetLengthColumns(cursorY) == 0){
+    else if (document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY) == 0){
         //If Backspace pressed on emptyline, line is removed
-        DocCtrl.RemoveLine(cursorY);
-        window.SetCursorY(cursorY-1);
-        window.SetCursorX(document.GetLengthColumns(cursorY-1));
+        DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
+        cursorUp();
+        
     }
     else if (cursorX == 0){
         //if cursor at beginning of the line
         //move to the end of top line 
-        window.SetCursorY(cursorY-1);
-        window.SetCursorX(document.GetLengthColumns(cursorY-1));
-
-        //set the new cursor
-        int cursorX = window.GetCursorX();
-        int cursorY = window.GetCursorY();
-
-        //Backspace() Deletes one char based on cursor position
-        DocCtrl.Backspace(cursorY, cursorX);
-
-        //Move the cursor accordingly 
-        window.SetCursorX(cursorX-1);    
+        cursorUp();  
     }
     else{
         //Backspace() Deletes one char based on cursor position
-        DocCtrl.Backspace(cursorY, cursorX);
+        DocCtrl.Backspace((page * window.GetRowNumInView()) + cursorY, cursorX);
 
         //Move the cursor accordingly 
         window.SetCursorX(cursorX-1);  
     }
     
     //Refresh the view
-    for (auto str : document.GetChars()){
-        window.AddRow(str);
-    }
+    ViewLayout();
 
 }
 
 //Create a new Line
 void ECEditorController :: NewLine(int row, string key){
-    DocCtrl.NewLine(row, key);
+    DocCtrl.NewLine((page * window.GetRowNumInView()) + row, key);
 }
     
 //Move the cursor Left
 void ECEditorController :: cursorLeft(){
 
     int cursorX = window.GetCursorX();
+    int cursorY = window.GetCursorY();
 
-    if(cursorX > 0){
+    if (cursorX == 0 && cursorY != 0){
+        window.SetCursorY(cursorY-1);
+        window.SetCursorX(document.GetLengthColumns(cursorY-1));
+    }
+    else if(cursorX > 0){
         window.SetCursorX(cursorX-1);
+    }
+    else{
+        return;
     }
 }
 
@@ -170,14 +224,16 @@ void ECEditorController :: cursorRight(){
     int cursorX = window.GetCursorX();
     int cursorY = window.GetCursorY();
 
-    if(cursorX < document.GetLengthColumns(cursorY)){
+    if (cursorX == document.GetLengthColumns(cursorY) && cursorY != document.GetLengthRows()-1){
+        window.SetCursorY(cursorY+1);
+        window.SetCursorX(0);
+    
+    }
+    else if(cursorX < document.GetLengthColumns(cursorY)){
         window.SetCursorX(cursorX + 1);
     }
     else{
-        //check if last line, make new line and set cursor
-        if (cursorY < document.GetLengthRows() - 1){
-            window.SetCursorY(cursorY - 1);
-        }
+        return;
     }
     
 }
@@ -187,9 +243,33 @@ void ECEditorController :: cursorUp(){
     
     int cursorY = window.GetCursorY();
 
-    if(cursorY > 0){
+    //if at top of page and there is a previous page
+    if(cursorY == 0 && page != 0){
+            window.InitRows();
+            
+            //decrease current page
+            page -= 1; 
+            
+            
+            if (document.GetLengthColumns((page * window.GetRowNumInView())) == 0){
+                //if last line from previous page is null set cursor
+                window.SetCursorX(0);
+                window.SetCursorY(window.GetRowNumInView()-1);
+
+            }
+            else{
+                //if last line from previous page has text, set cursor accordingly
+                window.SetCursorY(window.GetRowNumInView()-1);
+                window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + (window.GetRowNumInView()-1)));
+            }
+
+            //Refresh the view
+            ViewLayout();
+    }
+    else if(cursorY > 0){
+        //Standard Up cursor movement
         window.SetCursorY(cursorY - 1);
-        window.SetCursorX(document.GetLengthColumns(cursorY-1));
+        window.SetCursorX(document.GetLengthColumns(((page * window.GetRowNumInView()) + cursorY) - 1));
     }
 
 }
@@ -199,9 +279,30 @@ void ECEditorController :: cursorDown(){
 
     int cursorY = window.GetCursorY();
 
-    if(cursorY < document.GetLengthRows()){
+    //***********************
+    //PAGE LAYOUT MANAGMENT *
+    //***********************
+    if (cursorY == window.GetRowNumInView()-1 && cursorY*page != document.GetLengthRows()){
+        window.InitRows();
+            
+        page += 1; 
+
+        if (document.GetLengthColumns(page * window.GetRowNumInView()) == 0){
+            window.SetCursorY(0);
+            window.SetCursorX(0);
+        }
+        else{
+            window.SetCursorY(0);
+            window.SetCursorX(document.GetLengthColumns(page * window.GetRowNumInView()));
+        }
+
+        ViewLayout();
+
+    }
+    else if(cursorY < window.GetRowNumInView()){
+        //Regular DownMovement
         window.SetCursorY(cursorY + 1);
-        window.SetCursorX(document.GetLengthColumns(cursorY+1));
+        window.SetCursorX(document.GetLengthColumns(((page * window.GetRowNumInView()) + cursorY) + 1));
 
     }
 }
@@ -212,17 +313,14 @@ void ECEditorController :: CharUpdate(int key){
     string text = string(1, char(key));    
     InsertText(window.GetCursorY(), window.GetCursorX(), text);
     
+    //Refresh the view
+    ViewLayout();
     
-    for (auto str : document.GetChars()){
-        window.AddRow(str);
-    }
-    
-
     window.Refresh();
 }
 
 //CharUpdate Helper function
 void ECEditorController :: InsertText(int row, int column, string key){
-    DocCtrl.InsertTextAt(row, column, key);
+    DocCtrl.InsertTextAt((page * window.GetRowNumInView()) + row, column, key);
     window.SetCursorX(column + 1);
 }

@@ -25,7 +25,7 @@ public:
 
     void Update(); //modifying the model and then updating the view in update 
     void CursorUpdate(int key);
-    void AddRowAt();
+    void Enter();
     void Backspace();
     void NewLine(int row, string key);
     void cursorLeft();
@@ -34,12 +34,14 @@ public:
     void cursorDown();
     void CharUpdate(int key);
     void InsertText(int row, int column, string key);
+    void ViewLayout();
 
 
 private:
     ECTextViewImp &window;
     ECTextDocument document;
     ECTextDocumentCtrl &DocCtrl;
+    int page;
 
 };
 
