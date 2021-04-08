@@ -169,18 +169,36 @@ void ECEditorController :: Backspace(){
 
     //If at top of document; Do Nothing
     if (cursorY == 0 && cursorX == 0 && page == 0){
+        ViewLayout();
         return;
     }
     else if (document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY) == 0){
         //If Backspace pressed on emptyline, line is removed
         DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
         cursorUp();
-        
     }
     else if (cursorX == 0){
         //if cursor at beginning of the line
-        //move to the end of top line 
-        cursorUp();  
+        //merge the two lines 
+        
+        //If cursor not at top of document
+        if ((page * window.GetRowNumInView()) + cursorY != 0){
+            
+            //Row, Column, String
+            int prev_row = (page * window.GetRowNumInView()) + cursorY - 1;
+            int prev_column = document.GetLengthColumns(prev_row);
+            string prev_string = document.GetStringAt((page * window.GetRowNumInView()) + cursorY);
+
+            //Append current row to previous Row
+            DocCtrl.InsertTextAt(prev_row, prev_column, prev_string);
+
+            //delete current row
+            DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
+
+            //Move Cursor Up
+            cursorUp();  
+
+        }
     }
     else{
         //Backspace() Deletes one char based on cursor position
@@ -299,7 +317,7 @@ void ECEditorController :: cursorDown(){
         ViewLayout();
 
     }
-    else if(cursorY < window.GetRowNumInView()){
+    else if(cursorY < document.GetLengthRows()){
         //Regular DownMovement
         window.SetCursorY(cursorY + 1);
         window.SetCursorX(document.GetLengthColumns(((page * window.GetRowNumInView()) + cursorY) + 1));

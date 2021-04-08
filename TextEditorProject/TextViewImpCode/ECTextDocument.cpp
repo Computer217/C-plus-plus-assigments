@@ -16,7 +16,7 @@ void InsertCommand :: Execute(){
     int curr = column;
     
     for (auto c : LCTI){
-        doc.InsertCharAt(row, column, string(1, c));
+        doc.InsertCharAt(row, curr, string(1, c));
         curr++;
     }
 }
@@ -28,7 +28,7 @@ void InsertCommand :: UnExecute(){
 }
 
 void RemoveCommand :: Execute(){
-    doc.EraseText(row, column);
+  doc.EraseText(row, column);
     
 }
 
@@ -37,7 +37,7 @@ void RemoveCommand :: UnExecute(){
 }
 
 void AddCommand :: Execute(){
-    doc.addrow(LCTI);
+  doc.addrow(LCTI);
 }
 
 void AddCommand :: UnExecute(){
@@ -45,7 +45,7 @@ void AddCommand :: UnExecute(){
 }
 
 void NewCommand :: Execute(){
-    doc.NewLine(row, LCTI);
+  doc.NewLine(row, LCTI);
 }
 
 void NewCommand :: UnExecute(){
@@ -121,8 +121,6 @@ void ECTextDocumentCtrl :: Backspace(int row, int column)
   histCmds.ExecuteCmd(new BackspaceCommand(doc, row, column));
 
 }
-
-
 
 bool ECTextDocumentCtrl :: Undo()
 {

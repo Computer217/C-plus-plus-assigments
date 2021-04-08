@@ -84,7 +84,6 @@ class RemoveLineCommand: public ECCommand {
         int row;
 };
 
-
 // **********************************************************
 // Controller for text document
 
@@ -138,6 +137,9 @@ public:
     }
     void EraseText(int row, int column){
         listChars[row].erase(listChars[row].begin() + column, listChars[row].end());
+    }
+    string GetStringAt(int row){
+        return listChars[row];
     }
 
 private:
