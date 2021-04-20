@@ -196,7 +196,8 @@ void ECEditorController :: Backspace(){
             DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
 
             //Move Cursor Up
-            cursorUp();  
+            window.SetCursorY(cursorY - 1);
+            window.SetCursorX(prev_column);
 
         }
     }
@@ -219,6 +220,7 @@ void ECEditorController :: NewLine(int row, string key){
 }
     
 //Move the cursor Left
+//NEED TO IMPLEMENT PREVIOUS LINE
 void ECEditorController :: cursorLeft(){
 
     int cursorX = window.GetCursorX();
@@ -237,6 +239,7 @@ void ECEditorController :: cursorLeft(){
 }
 
 //Move the cursor Right
+//NEED TO IMPLEMENT NEXT LINE
 void ECEditorController :: cursorRight(){
 
     int cursorX = window.GetCursorX();
