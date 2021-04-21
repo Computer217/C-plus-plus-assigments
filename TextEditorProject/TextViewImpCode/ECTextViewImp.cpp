@@ -207,8 +207,8 @@ void ECTextViewImp :: Show()
         // just priint for now
         if( keyLastPressed == CTRL_Q)
         {
-
             Quit();
+            //Clear the view //Edit made 
             cout<< string(200, '\n');
             break;
         }

@@ -10,6 +10,8 @@
 #include "ECTextDocument.h"
 #include "ECCommand.h"
 #include <string>
+#include <fstream>
+#include <iostream>
 
 
 using namespace std;
@@ -18,12 +20,12 @@ using namespace std;
 class ECEditorController : public ECObserver
 {
 public:
-    ECEditorController(ECTextViewImp &WndIn);
-    virtual ~ECEditorController(){}
-
-    //void Show(){window.Show();}
+    ECEditorController(ECTextViewImp &WndIn, string file);
+    virtual ~ECEditorController();
 
     void Update(); //modifying the model and then updating the view in update 
+    void Save();
+    void ReadFile();
     void CursorUpdate(int key);
     void Enter();
     void Backspace();
@@ -35,6 +37,7 @@ public:
     void CharUpdate(int key);
     void InsertText(int row, int column, string key);
     void ViewLayout();
+    
 
 
 private:
@@ -42,7 +45,7 @@ private:
     ECTextDocument document;
     ECTextDocumentCtrl &DocCtrl;
     int page;
-
+    string file;
 };
 
 #endif /* ECEditorController_h */

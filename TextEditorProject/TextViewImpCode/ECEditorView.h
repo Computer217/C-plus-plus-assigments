@@ -14,15 +14,19 @@ using namespace std;
 
 class ECEditorView{
     public:
-        ECEditorView();
+        ECEditorView(string file);
         virtual ~ECEditorView();
         //void Show();
 
         void Start(){
             //clearRows before showing document()
             window.InitRows();
-            //enter infinite loop
-            window.AddStatusRow("Pablo's TextEditor", "Page: 1 ", true);
+
+            //Read from specified text file 
+            ctrl.ReadFile();
+            ctrl.ViewLayout();
+
+            //enter infinite loop to observe commands
             window.Show();
         }
     

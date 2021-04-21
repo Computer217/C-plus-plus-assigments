@@ -9,7 +9,7 @@
 using namespace std;
 
 //Constructor add EditorController 
-ECEditorView :: ECEditorView(): window(ECTextViewImp()), ctrl(ECEditorController(window)){
+ECEditorView :: ECEditorView(string file): window(ECTextViewImp()), ctrl(ECEditorController(window, file)){
     window.Attach(&ctrl);
 }
 
@@ -18,9 +18,15 @@ ECEditorView :: ~ECEditorView(){}
 //StartView
 int main(int argc, char *argv[])
 {
-    ECEditorView *Program = new ECEditorView();
-
+    if (argc != 2){
+        cout << "ERROR: Please specify a file name -- e.g File.txt" << endl;
+        return 1;
+    }
+    
+    ECEditorView *Program = new ECEditorView(argv[1]);
     Program->Start();
+
+    delete Program;
 
     return 0;
 }

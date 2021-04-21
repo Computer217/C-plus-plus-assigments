@@ -8,12 +8,59 @@
 #include "ECCommand.h"
 #include <iostream>
 #include <string>
+#include<unistd.h>
 
 using namespace std;
 
 
 //Constructor
-ECEditorController :: ECEditorController(ECTextViewImp &WndIn): window(WndIn), document(ECTextDocument()), DocCtrl(document.GetCtrl()), page(0){}
+ECEditorController :: ECEditorController(ECTextViewImp &WndIn, string file): window(WndIn), document(ECTextDocument()), DocCtrl(document.GetCtrl()), page(0), file(file){}
+
+//Destructor writes to the file
+ECEditorController :: ~ECEditorController(){
+    Save();
+}
+
+//Writting to file before quitting 
+void ECEditorController :: Save(){
+        fstream File;
+        File.open(file, fstream::in | fstream::out | fstream::trunc );
+
+        if (!File){
+            File.open(file, fstream::out);
+
+            //write to file
+            for (int i = 0; i < document.GetLengthRows(); i++){
+                File << document.GetStringAt(i) << endl;
+            }
+
+            File.close();
+        }
+        else{
+            //write to file
+            for (int i = 0; i < document.GetLengthRows(); i++){
+                File << document.GetStringAt(i) << endl;
+            }
+
+            File.close();
+        }
+}  
+
+//Read from file if file exists
+void ECEditorController :: ReadFile(){
+    fstream File;
+    File.open(file, ios::in);
+    string line;
+
+    if(File.is_open()){
+        while(getline(File, line)){
+            DocCtrl.AddRow(line);
+        }
+        File.close();
+        DocCtrl.RemoveLine(0);
+    }
+
+}
 
 //ReadKey from STDIO
 void ECEditorController :: Update(){
@@ -25,6 +72,7 @@ void ECEditorController :: Update(){
     else if (key>=32){   
         this->CharUpdate(key);
     }
+    
 }
 
 //Proccess/Read Key
@@ -195,7 +243,7 @@ void ECEditorController :: Backspace(){
             //delete current row
             DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
 
-            //Move Cursor Up
+            //Move Cursor Up in correct column 
             window.SetCursorY(cursorY - 1);
             window.SetCursorX(prev_column);
 
@@ -220,7 +268,6 @@ void ECEditorController :: NewLine(int row, string key){
 }
     
 //Move the cursor Left
-//NEED TO IMPLEMENT PREVIOUS LINE
 void ECEditorController :: cursorLeft(){
 
     int cursorX = window.GetCursorX();
@@ -239,7 +286,6 @@ void ECEditorController :: cursorLeft(){
 }
 
 //Move the cursor Right
-//NEED TO IMPLEMENT NEXT LINE
 void ECEditorController :: cursorRight(){
 
     int cursorX = window.GetCursorX();
