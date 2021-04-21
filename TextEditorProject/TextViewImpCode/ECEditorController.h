@@ -35,6 +35,7 @@ public:
     void cursorUp();
     void cursorDown();
     void CharUpdate(int key);
+    void Undo();
     void InsertText(int row, int column, string key);
     void ViewLayout();
     

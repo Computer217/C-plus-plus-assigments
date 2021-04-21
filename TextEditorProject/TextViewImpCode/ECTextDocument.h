@@ -12,7 +12,7 @@ class ECTextDocument;
 // Implements Commands for editing 
 
 
-// your code goes here
+// InsertTextAt Command 
 class InsertCommand : public ECCommand {
     public:
         InsertCommand(ECTextDocument &document,  int row, int column, string &listCharsToIns): doc(document), row(row), column(column), LCTI(listCharsToIns){}

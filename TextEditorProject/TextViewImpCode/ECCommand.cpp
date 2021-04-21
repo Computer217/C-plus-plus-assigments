@@ -28,7 +28,6 @@ void ECCommandHistory :: ExecuteCmd( ECCommand *pCmd ){
 
 bool ECCommandHistory :: Undo(){
   if (history.size() > 0){
-    //cout << "Undo: Unexecute last";
     history[present-1]->UnExecute();
     present--;
     return true;
@@ -40,7 +39,6 @@ bool ECCommandHistory :: Undo(){
 
 bool ECCommandHistory :: Redo(){
   if (present + 1 <= history.size()){
-    //cout << "Redo: Unexecute last";
     history[present]->Execute();
     present++;
     return true;

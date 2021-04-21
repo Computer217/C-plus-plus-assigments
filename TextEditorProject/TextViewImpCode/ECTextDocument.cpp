@@ -8,25 +8,22 @@ using namespace std;
 // **********************************************************
 // Commands
 
-// your code goes here 
+// Created By Pablo Rodriguez 2/17/21
 
 
 // InsertCommand
 void InsertCommand :: Execute(){
-    int curr = column;
-    
     for (auto c : LCTI){
-        doc.InsertCharAt(row, curr, string(1, c));
-        curr++;
+        doc.InsertCharAt(row, column, string(1, c));
     }
 }
 
 void InsertCommand :: UnExecute(){
-  for (int i=0; i<LCTI.size(); i++){
-    doc.RemoveCharAt(row, column);
-  }
+    //erase text removes rest of line
+    doc.RemoveCharAt(row, column+1);
 }
 
+//RemoveCommand
 void RemoveCommand :: Execute(){
   doc.EraseText(row, column);
     

@@ -72,7 +72,26 @@ void ECEditorController :: Update(){
     else if (key>=32){   
         this->CharUpdate(key);
     }
+    else if (key == CTRL_Z){
+        this->Undo();
+    }
     
+}
+
+void ECEditorController :: Undo(){
+
+    int cursorX = window.GetCursorX();
+
+    //segfault at 0,0
+    if (cursorX == 0) {return;}
+
+    window.InitRows();
+    DocCtrl.Undo();
+    window.SetCursorX(cursorX-1);
+
+    //Refresh the view
+    ViewLayout();
+    window.Refresh();
 }
 
 //Proccess/Read Key
