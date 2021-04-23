@@ -24,21 +24,38 @@ class InsertCommand : public ECCommand {
         int row;
         int column;
         string &LCTI;
-
+        std::vector<string> strvec;
 };
 
-class AddCommand : public ECCommand {
+//RemoveCommand
+class RemoveCommand : public ECCommand {
     public:
-        AddCommand(ECTextDocument &document, string value): doc(document), LCTI(value){}
+        RemoveCommand(ECTextDocument &document, int row, int column, string &strRemoved): doc(document), row(row), column(column), LCTI(strRemoved){}
         virtual void Execute();
         virtual void UnExecute();
-
     private:
         ECTextDocument &doc;
-        string LCTI;
-
+        int row;
+        int column;
+        string &LCTI; 
+        std::vector<string> strvec;
 };
 
+
+//Delete Key Command
+class BackspaceCommand: public ECCommand {
+    public:
+        BackspaceCommand(ECTextDocument &document, int row, int column, string characterIn): doc(document), row(row), column(column), character(characterIn){}
+        virtual void Execute();
+        virtual void UnExecute();
+    private:
+        ECTextDocument &doc;
+        int row;
+        int column;
+        string character;
+};
+
+//NewLine (Add a Line at an index)
 class NewCommand : public ECCommand {
     public:
         NewCommand(ECTextDocument &document, int row, string key): doc(document), row(row), LCTI(key){}
@@ -52,36 +69,52 @@ class NewCommand : public ECCommand {
 
 };
 
-class RemoveCommand : public ECCommand {
-    public:
-        RemoveCommand(ECTextDocument &document, int row, int column): doc(document), row(row), column(column){}
-        virtual void Execute();
-        virtual void UnExecute();
-    private:
-        ECTextDocument &doc;
-        int row;
-        int column;
-};
-
-class BackspaceCommand: public ECCommand {
-    public:
-        BackspaceCommand(ECTextDocument &document, int row, int column): doc(document), row(row), column(column){}
-        virtual void Execute();
-        virtual void UnExecute();
-    private:
-        ECTextDocument &doc;
-        int row;
-        int column;
-};
-
 class RemoveLineCommand: public ECCommand {
     public:
-        RemoveLineCommand(ECTextDocument &document, int row): doc(document), row(row){}
+        RemoveLineCommand(ECTextDocument &document, int row, string &key): doc(document), row(row), LCTI(key) {}
         virtual void Execute();
         virtual void UnExecute();
     private:
         ECTextDocument &doc;
         int row;
+        string &LCTI; 
+        std::vector<string> strvec;
+};
+
+class CombineCommand: public ECCommand {
+    public:
+        CombineCommand(ECTextDocument &document, int row, string &key, int two_row, int two_col, string &str): doc(document), row(row), LCTI(key), two_row(two_row), two_col(two_col), two_LCTI(str){}
+        virtual void Execute();
+        virtual void UnExecute();
+    private:
+        ECTextDocument &doc;
+        //first command
+        int row;
+        string &LCTI; 
+        std::vector<string> strvecc;
+        //Second Command
+        int two_row;
+        int two_col;
+        string &two_LCTI;
+        std::vector<string> strvec;
+};
+
+class CombineBackspaceCommand: public ECCommand {
+    public:
+        CombineBackspaceCommand(ECTextDocument &document, int row, int col, string &key, int two_row, string &str): doc(document), row(row), col(col), LCTI(key), two_row(two_row), two_LCTI(str){}
+        virtual void Execute();
+        virtual void UnExecute();
+    private:
+        ECTextDocument &doc;
+        //first command
+        int row;
+        int col;
+        string &LCTI; 
+        std::vector<string> strvec;
+        //Second Command
+        int two_row;
+        string &two_LCTI;
+        std::vector<string> strtwovec;
 };
 
 // **********************************************************
@@ -91,13 +124,14 @@ class ECTextDocumentCtrl
 {
 public:
     ECTextDocumentCtrl(ECTextDocument &docIn);          // conroller constructor takes the document as input
-    virtual ~ECTextDocumentCtrl();
-    void InsertTextAt(int row, int column, string &listCharsToIns);    // insert a list of characters starting at position
+    virtual ~ECTextDocumentCtrl();                      //DocCtrl Destructor
+    void InsertTextAt(int row, int column, string &listCharsToIns);    // insert a string at (row, column)
+    void Backspace(int row, int column);                //Delete chars
     void RemoveTextAt(int row, int column);
-    void AddRow(string value);
     void NewLine(int row, string key);
     void RemoveLine(int row);
-    void Backspace(int row, int column);
+    void combine(int row, string key, int two_row, int two_col);
+    void combineBackspace(int prev_row, int prev_column, string prev_string, int del_row);
     bool Undo();                                                            // undo any change you did to the text
     bool Redo();                                                            // redo the change to the text
     
@@ -129,6 +163,9 @@ public:
     void addrow(string value){
         listChars.push_back(value);
     }
+    void removerow(){
+        listChars.pop_back();
+    }
     void NewLine(int row, string key){
         listChars.insert(listChars.begin()+row, key);
     }
@@ -138,8 +175,16 @@ public:
     void EraseText(int row, int column){
         listChars[row].erase(listChars[row].begin() + column, listChars[row].end());
     }
+    void AddText(int row, string text){
+        for (auto txt:text){
+            listChars[row].push_back(txt);
+        }
+    }
     string GetStringAt(int row){
         return listChars[row];
+    }
+    string GetSubString(int row, int column){
+        return listChars[row].substr(column);
     }
 
 private:

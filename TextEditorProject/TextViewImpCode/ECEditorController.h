@@ -26,16 +26,19 @@ public:
     void Update(); //modifying the model and then updating the view in update 
     void Save();
     void ReadFile();
+    void Undo();
+    void Redo();
     void CursorUpdate(int key);
     void Enter();
-    void Backspace();
+    void MidLineEnter(int cursorX, int cursorY, string remaining_line);
     void NewLine(int row, string key);
+    void Backspace();
+    void BackspaceMege(int prev_row, int prev_column, string prev_string, int row);
     void cursorLeft();
     void cursorRight();
     void cursorUp();
     void cursorDown();
     void CharUpdate(int key);
-    void Undo();
     void InsertText(int row, int column, string key);
     void ViewLayout();
     

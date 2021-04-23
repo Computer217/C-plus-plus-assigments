@@ -29,8 +29,6 @@ public:
     void ExecuteCmd( ECCommand *pCmd );
     
 private:
-    // your code goes here
-    //int current;
     vector<ECCommand *> history;
     int present;
 };

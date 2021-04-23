@@ -6,43 +6,55 @@ using namespace std;
 // ******************************************************
 // Implement command history
 
-ECCommandHistory :: ECCommandHistory(): present(0)
-{
-}
+ECCommandHistory :: ECCommandHistory(): present(-1){}
 
 ECCommandHistory :: ~ECCommandHistory()
 {
   for(auto Cmd: history){
     delete Cmd;
   }
+
+  history.clear();
+  present = -1;
 }
 
 void ECCommandHistory :: ExecuteCmd( ECCommand *pCmd ){
-  //call execute method
-  //cout << "ExecuteCmd: Execute Commands" << endl;
-  //cout << "current command: " << present << endl;
-  history.push_back(pCmd);
+
   pCmd->Execute();
+  
+  if(present >= -1){
+      int temp = history.size();
+      for(int i=present+1; i < temp; i++){
+        delete history.back();
+        history.pop_back();
+      }
+  }
+
+  history.push_back(pCmd);
   present++;
+
 }
 
 bool ECCommandHistory :: Undo(){
-  if (history.size() > 0){
-    history[present-1]->UnExecute();
-    present--;
-    return true;
+
+  if (present < 0){
+    return false;
   }
 
-  return false;
+  history[present]->UnExecute();
+  present--;
+  return true;
 
 }
 
 bool ECCommandHistory :: Redo(){
-  if (present + 1 <= history.size()){
-    history[present]->Execute();
-    present++;
-    return true;
+
+  if (present >= (int)history.size()-1){
+    return false;
   }
 
-  return false;
+  present++;
+  history[present]->Execute();
+  return true;
 }
+

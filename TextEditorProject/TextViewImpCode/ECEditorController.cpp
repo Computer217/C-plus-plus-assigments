@@ -54,7 +54,7 @@ void ECEditorController :: ReadFile(){
 
     if(File.is_open()){
         while(getline(File, line)){
-            DocCtrl.AddRow(line);
+            DocCtrl.NewLine(document.GetLengthRows(),line);
         }
         File.close();
         DocCtrl.RemoveLine(0);
@@ -75,23 +75,38 @@ void ECEditorController :: Update(){
     else if (key == CTRL_Z){
         this->Undo();
     }
-    
+    else if (key == CTRL_R){
+        this->Redo();
+    }    
 }
 
 void ECEditorController :: Undo(){
-
-    int cursorX = window.GetCursorX();
-
-    //segfault at 0,0
-    if (cursorX == 0) {return;}
+    int cursorY = window.GetCursorY();
+    //int cursorX = window.GetCursorX(); need to do vertical positioning
 
     window.InitRows();
     DocCtrl.Undo();
-    window.SetCursorX(cursorX-1);
+
+    window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
 
     //Refresh the view
     ViewLayout();
     window.Refresh();
+}
+
+void ECEditorController :: Redo(){
+    int cursorY = window.GetCursorY();
+    //int cursorX = window.GetCursorX(); need to do vertical positioning
+
+    window.InitRows();
+    DocCtrl.Redo();
+
+    window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
+
+    //Refresh the view
+    ViewLayout();
+    window.Refresh();
+
 }
 
 //Proccess/Read Key
@@ -171,7 +186,7 @@ void ECEditorController :: Enter(){
     int cursorY = window.GetCursorY();
 
     //Midline Enter [WORKING]
-    if(cursorX < document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY)){
+    if(cursorX < document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY) && cursorX != 0){
         window.InitRows(); 
         string remaining_line = "";
         
@@ -179,10 +194,9 @@ void ECEditorController :: Enter(){
         for (int i = cursorX; i < document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY); i++){
             remaining_line += document.GetCharAt((page * window.GetRowNumInView()) + cursorY, i);
         }
-        NewLine(window.GetCursorY()+1,remaining_line);
 
-        //Remove Remaining text from current line 
-        DocCtrl.RemoveTextAt((page * window.GetRowNumInView()) + cursorY, cursorX);
+        //Combine two commands
+        MidLineEnter(cursorX, cursorY, remaining_line);
 
         //Refresh View
         ViewLayout();
@@ -208,8 +222,8 @@ void ECEditorController :: Enter(){
             ViewLayout();
 
         }
-        else{
-            //FrontLine Enter
+        else if(cursorX == document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY)){
+            //Endline Enter
             window.InitRows(); 
 
             //Add a row on top
@@ -217,12 +231,41 @@ void ECEditorController :: Enter(){
 
             window.SetCursorX(0);
             window.SetCursorY(window.GetCursorY()+1);
-
             //Refresh the view
             ViewLayout();
 
+        }
+        else{
+            //FrontLine Enter
+            window.InitRows(); 
+
+            //Add a row on top
+            NewLine(window.GetCursorY()-1, empty_line);
+
+            window.SetCursorX(0);
+            window.SetCursorY(window.GetCursorY()-1);
+            //Refresh the view
+            ViewLayout();
         }     
     }
+}
+
+//midline Enter
+void ECEditorController :: MidLineEnter(int cursorX, int cursorY, string remaining_line){
+
+    DocCtrl.combine((page * window.GetRowNumInView())+window.GetCursorY()+1,remaining_line, (page * window.GetRowNumInView()) + cursorY, cursorX);
+
+    /*
+    DocCtrl.NewLine((page * window.GetRowNumInView())+window.GetCursorY()+1, remaining_line);
+    //Remove Remaining text from current line 
+    DocCtrl.RemoveTextAt((page * window.GetRowNumInView()) + cursorY, cursorX);
+    */
+    
+}
+
+//Create a new Line
+void ECEditorController :: NewLine(int row, string key){
+    DocCtrl.NewLine((page * window.GetRowNumInView()) + row, key);
 }
 
 //Delete Chars and Lines
@@ -256,11 +299,7 @@ void ECEditorController :: Backspace(){
             int prev_column = document.GetLengthColumns(prev_row);
             string prev_string = document.GetStringAt((page * window.GetRowNumInView()) + cursorY);
 
-            //Append current row to previous Row
-            DocCtrl.InsertTextAt(prev_row, prev_column, prev_string);
-
-            //delete current row
-            DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
+            BackspaceMege(prev_row, prev_column, prev_string, (page * window.GetRowNumInView()) + cursorY);
 
             //Move Cursor Up in correct column 
             window.SetCursorY(cursorY - 1);
@@ -281,9 +320,20 @@ void ECEditorController :: Backspace(){
 
 }
 
-//Create a new Line
-void ECEditorController :: NewLine(int row, string key){
-    DocCtrl.NewLine((page * window.GetRowNumInView()) + row, key);
+//midline Enter
+void ECEditorController :: BackspaceMege(int prev_row, int prev_column, string prev_string, int del_row){
+
+    DocCtrl.combineBackspace(prev_row, prev_column, prev_string, del_row);
+
+    /*
+        //Append current row to previous Row
+        DocCtrl.InsertTextAt(prev_row, prev_column, prev_string);
+
+        //delete current row
+        DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
+    
+    */
+    
 }
     
 //Move the cursor Left
