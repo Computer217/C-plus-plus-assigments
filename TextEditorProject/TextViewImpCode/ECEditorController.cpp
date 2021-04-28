@@ -77,17 +77,23 @@ void ECEditorController :: Update(){
     }
     else if (key == CTRL_R){
         this->Redo();
+    }
+    else if (key == CTRL_F){
+        this->Search(key);
     }    
 }
 
 void ECEditorController :: Undo(){
     int cursorY = window.GetCursorY();
-    //int cursorX = window.GetCursorX(); need to do vertical positioning
 
     window.InitRows();
     DocCtrl.Undo();
 
     window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
+
+    if (cursorY > document.GetLengthRows()){
+        window.SetCursorY(document.GetLengthRows());
+    }
 
     //Refresh the view
     ViewLayout();
@@ -96,12 +102,15 @@ void ECEditorController :: Undo(){
 
 void ECEditorController :: Redo(){
     int cursorY = window.GetCursorY();
-    //int cursorX = window.GetCursorX(); need to do vertical positioning
 
     window.InitRows();
     DocCtrl.Redo();
 
     window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
+
+    if (cursorY > document.GetLengthRows()){
+        window.SetCursorY(document.GetLengthRows());
+    }
 
     //Refresh the view
     ViewLayout();
@@ -138,6 +147,18 @@ void ECEditorController :: CursorUpdate(int key){
 
     window.Refresh();
 }
+
+
+void ECEditorController :: Search(int key){
+
+    while (key != ESC){
+        int key = window.GetPressedKey();
+        string text = string(1, char(key));
+        window.ClearStatusRows();  
+        window.AddStatusRow("Pablo's TextEditor", "Page: " + to_string(page+1) + " ", true);
+    }
+}
+
 
 //AddRows() to the view depending on current window range
 void ECEditorController :: ViewLayout(){
@@ -238,14 +259,11 @@ void ECEditorController :: Enter(){
         else{
             //FrontLine Enter
             window.InitRows(); 
-
-            //Add a row on top
-            NewLine(window.GetCursorY()-1, empty_line);
-
+            NewLine(cursorY, empty_line);
             window.SetCursorX(0);
-            window.SetCursorY(window.GetCursorY()-1);
-            //Refresh the view
+            window.SetCursorY(cursorY);
             ViewLayout();
+            
         }     
     }
 }

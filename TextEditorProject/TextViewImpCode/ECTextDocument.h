@@ -190,6 +190,7 @@ public:
 private:
     ECTextDocumentCtrl docCtrl;
     std::vector<string> listChars = {""};
+    std::vector<string> statusBar = {""};
 
 };
 

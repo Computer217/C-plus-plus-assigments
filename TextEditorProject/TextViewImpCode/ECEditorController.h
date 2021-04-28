@@ -28,6 +28,7 @@ public:
     void ReadFile();
     void Undo();
     void Redo();
+    void Search(int key);
     void CursorUpdate(int key);
     void Enter();
     void MidLineEnter(int cursorX, int cursorY, string remaining_line);
