@@ -11,7 +11,10 @@ using namespace std;
 
 // InsertTextAt Command ------------------------------
 void InsertCommand :: Execute(){
-  strvec.push_back(LCTI);
+  if (strvec.size()==0){
+    strvec.push_back(LCTI);
+  }
+  
   doc.InsertCharAt(row, column, strvec[0]);
 }
 
@@ -23,12 +26,14 @@ void InsertCommand :: UnExecute(){
 
 //RemoveTextAt Command ------------------------------
 void RemoveCommand :: Execute(){
-  strvec.push_back(LCTI);
+  if (strvec.size()==0){
+    strvec.push_back(LCTI);
+  }
+
   doc.EraseText(row, column);
 }
 
 void RemoveCommand :: UnExecute(){
-  //RemoveTextAt Unexecute
   doc.AddText(row, strvec[0]);
 }
 
@@ -38,9 +43,7 @@ void BackspaceCommand :: Execute(){
 }
 
 void BackspaceCommand :: UnExecute(){
-  //UnExecuteBackSpace
   doc.InsertCharAt(row,column-1, character);
-  
 }
 
 //NewLine at row Command ------------------------------
@@ -54,25 +57,31 @@ void NewCommand :: UnExecute(){
 
 //RemoveLine Command ------------------------------
 void RemoveLineCommand :: Execute(){
-  //ADDED MIGHT BREAK-----
-  strvec.push_back(LCTI);
+
+  if (strvec.size()==0){
+    strvec.push_back(LCTI);
+  }
+
   doc.RemoveLineAt(row);
 }
 
 void RemoveLineCommand :: UnExecute(){
-  //UnExecuteBackSpace
   doc.NewLine(row, strvec[0]);
 }
 
 //Combine Command ------------------------------
 
 void CombineCommand :: Execute(){
+
+  if (strvecc.size() == 0 && strvec.size()==0){
+    strvecc.push_back(LCTI);
+    strvec.push_back(two_LCTI);
+  }
+
   //First Comand NewLine
-  strvecc.push_back(LCTI);
   doc.NewLine(row, strvecc[0]);
 
   //Second Command RemoveTextAt
-  strvec.push_back(two_LCTI);
   doc.EraseText(two_row, two_col);
 }
 
@@ -86,12 +95,16 @@ void CombineCommand :: UnExecute(){
 //BackSpace Comand ------------------------------
 
 void CombineBackspaceCommand :: Execute(){
+
+  if (strvec.size() == 0 && strtwovec.size()==0){
+    strvec.push_back(LCTI);
+    strtwovec.push_back(two_LCTI);
+  }
+
   //First Comand TextInsertAt
-  strvec.push_back(LCTI);
   doc.InsertCharAt(row, col, strvec[0]);
 
   //Second Command RemoveLine
-  strtwovec.push_back(two_LCTI);
   doc.RemoveLineAt(two_row);
 
 }
@@ -103,6 +116,23 @@ void CombineBackspaceCommand :: UnExecute(){
   //UnExecute First Command
   doc.EraseText(row, col);
   
+}
+
+//RemoveWords Comand ------------------------------
+
+void WordsCommand :: Execute(){
+
+  if (string_replace.size() == 0 && string_search.size()==0){
+    string_search.push_back(search);
+    string_replace.push_back(replace);
+  }
+
+  doc.RemoveWords(string_search[0], string_replace[0], row_start, row_end);
+}
+  
+void WordsCommand :: UnExecute(){
+  string_replace.push_back(replace);
+  doc.RemoveWords(string_replace[0], string_search[0], row_start, row_end);
 }
 
 // **********************************************************
@@ -150,6 +180,10 @@ void ECTextDocumentCtrl :: combineBackspace(int prev_row, int prev_column, strin
   histCmds.ExecuteCmd(new CombineBackspaceCommand(doc, prev_row, prev_column, prev_string, del_row, text_removed));
 }
 
+void ECTextDocumentCtrl :: RemoveWords(string search, string replace, int row_start, int row_end){
+  histCmds.ExecuteCmd(new WordsCommand(doc, search, replace, row_start, row_end));
+}
+
 bool ECTextDocumentCtrl :: Undo()
 {
   // your code
@@ -166,7 +200,6 @@ bool ECTextDocumentCtrl :: Redo()
   if (histCmds.Redo()){
     return true;
   }
-
   return false;
 }
 
@@ -176,6 +209,8 @@ bool ECTextDocumentCtrl :: Redo()
 
 ECTextDocument :: ECTextDocument() : docCtrl(*this)
 {
+  Search = false;
+  Find = true;
 }
 
 ECTextDocument :: ~ECTextDocument()
@@ -208,3 +243,94 @@ void ECTextDocument :: RemoveCharAt(int row, int column)
 {
   listChars[row].erase(column-1,1); 
 }
+
+
+int ECTextDocument :: GetLengthColumns(int pos){
+  return listChars[pos].size();
+}
+
+int ECTextDocument :: GetLengthRows(){
+  return listChars.size();
+}
+
+void ECTextDocument :: addrow(string value){
+  listChars.push_back(value);
+}
+
+void ECTextDocument :: removerow(){
+  listChars.pop_back();
+}
+
+void ECTextDocument :: NewLine(int row, string key){
+  listChars.insert(listChars.begin()+row, key);
+}
+
+void ECTextDocument :: RemoveLineAt(int row){
+  listChars.erase(listChars.begin()+row);
+}
+
+void ECTextDocument :: EraseText(int row, int column){
+  listChars[row].erase(listChars[row].begin() + column, listChars[row].end());
+}
+
+void ECTextDocument :: AddText(int row, string text){
+  for (auto txt:text){
+    listChars[row].push_back(txt);
+  }
+}
+
+string ECTextDocument :: GetStringAt(int row){
+  return listChars[row];
+}
+
+string ECTextDocument :: GetSubString(int row, int column){
+  return listChars[row].substr(column);
+}
+
+
+
+std::vector<int> ECTextDocument :: SearchColor(int row, string text){
+
+  size_t found = listChars[row].find(text);
+  std::vector<int> results;
+  int count = 0;
+  int convertdata = 0;
+
+  if (found == string::npos){
+
+    return results;
+
+  }
+  else{
+
+    while (found != string::npos){
+      convertdata = static_cast<int>(found);
+      results.push_back(convertdata);
+      count++;
+      found = listChars[row].find(text, found + count);
+    }
+
+    return results;
+  }
+
+  return results;
+}
+
+void ECTextDocument :: RemoveWords(string search, string replace, int row_start, int row_end){
+  int index = 0;
+    
+  for (int i = row_start; i < row_end; i++){
+    size_t found = listChars[i].find(search);
+
+    if (found == string::npos){
+      continue;
+    }
+
+    while (found != string::npos){
+      listChars[i].replace(found, search.length(), replace);
+      index++;
+      found = listChars[i].find(search, found + index);
+    }
+  }
+}
+

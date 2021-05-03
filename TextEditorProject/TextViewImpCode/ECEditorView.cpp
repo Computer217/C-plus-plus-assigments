@@ -15,9 +15,22 @@ ECEditorView :: ECEditorView(string file): window(ECTextViewImp()), ctrl(ECEdito
 
 ECEditorView :: ~ECEditorView(){}
 
-//StartView
+
+void ECEditorView :: Start(){
+    //clearRows before showing the Document/Model
+    window.InitRows();
+    //Read from specified text file 
+    ctrl.ReadFile();
+    //display read file data
+    ctrl.ViewLayout();
+    //enter infinite loop to observe commands
+    window.Show();
+}
+
+//Start Editor Program!
 int main(int argc, char *argv[])
 {
+    //if no file name is specified when calling the editor
     if (argc != 2){
         cout << "ERROR: Please specify a file name -- e.g File.txt" << endl;
         return 1;

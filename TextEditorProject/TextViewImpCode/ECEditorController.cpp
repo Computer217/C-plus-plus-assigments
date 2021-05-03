@@ -8,6 +8,7 @@
 #include "ECCommand.h"
 #include <iostream>
 #include <string>
+#include <algorithm>
 #include<unistd.h>
 
 using namespace std;
@@ -66,56 +67,44 @@ void ECEditorController :: ReadFile(){
 void ECEditorController :: Update(){
     int key = window.GetPressedKey();
 
-    if (key == ARROW_LEFT || key == ARROW_RIGHT || key == ARROW_UP || key == ARROW_DOWN || key == ENTER || key == BACKSPACE){
-        this->CursorUpdate(key);
+    //Key handling inside Search Mode
+    if (document.Search){
+        if (key == ESC){
+            this->SearchOff();
+        }
+        else if (key == BACKSPACE){
+            this->SearchBackspace();
+        }
+        else if (key == ENTER){
+            this->SearchEnter();
+        }
+        else if (key>=32){
+            this->SearchInput(key);
+            //Stop Highlighting once '/' appears
+            if (key == 47){document.Find = false;}
+        }
+        
+        //highlight search
+        if (document.Find){this->SearchFind();}
     }
-    else if (key>=32){   
-        this->CharUpdate(key);
-    }
-    else if (key == CTRL_Z){
-        this->Undo();
-    }
-    else if (key == CTRL_R){
-        this->Redo();
-    }
-    else if (key == CTRL_F){
-        this->Search(key);
-    }    
-}
-
-void ECEditorController :: Undo(){
-    int cursorY = window.GetCursorY();
-
-    window.InitRows();
-    DocCtrl.Undo();
-
-    window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
-
-    if (cursorY > document.GetLengthRows()){
-        window.SetCursorY(document.GetLengthRows());
-    }
-
-    //Refresh the view
-    ViewLayout();
-    window.Refresh();
-}
-
-void ECEditorController :: Redo(){
-    int cursorY = window.GetCursorY();
-
-    window.InitRows();
-    DocCtrl.Redo();
-
-    window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
-
-    if (cursorY > document.GetLengthRows()){
-        window.SetCursorY(document.GetLengthRows());
-    }
-
-    //Refresh the view
-    ViewLayout();
-    window.Refresh();
-
+    else{
+        //Key handling in insert mode
+        if (key == ARROW_LEFT || key == ARROW_RIGHT || key == ARROW_UP || key == ARROW_DOWN || key == ENTER || key == BACKSPACE){
+            this->CursorUpdate(key);
+        }
+        else if (key>=32){   
+            this->CharUpdate(key);
+        }
+        else if (key == CTRL_Z){
+            this->Undo();
+        }
+        else if (key == CTRL_R){
+            this->Redo();
+        }
+        else if (key == CTRL_F){
+            this->SearchOn();
+        }
+    }   
 }
 
 //Proccess/Read Key
@@ -148,25 +137,22 @@ void ECEditorController :: CursorUpdate(int key){
     window.Refresh();
 }
 
-
-void ECEditorController :: Search(int key){
-
-    while (key != ESC){
-        int key = window.GetPressedKey();
-        string text = string(1, char(key));
-        window.ClearStatusRows();  
-        window.AddStatusRow("Pablo's TextEditor", "Page: " + to_string(page+1) + " ", true);
-    }
-}
-
-
 //AddRows() to the view depending on current window range
 void ECEditorController :: ViewLayout(){
 
-    //Set the status Row with correct Page Display
-    window.ClearStatusRows();
-    window.AddStatusRow("Pablo's TextEditor", "Page: " + to_string(page+1) + " ", true);
+    //status bar text
+    string status_text(document.statusBar.begin(), document.statusBar.end());
 
+    if (document.Search){
+        window.ClearStatusRows();
+        window.AddStatusRow( "Search: " + status_text, "Page: " + to_string(page+1), true);
+    }
+    else{
+        //Set the status Row with correct Page Display
+        window.ClearStatusRows();
+        window.AddStatusRow("Insert: ", "Page: " + to_string(page+1), true);
+    }
+   
     //Store copy of current page from document 
     vector<string> Temp_view = document.GetChars();
 
@@ -195,18 +181,229 @@ void ECEditorController :: ViewLayout(){
 
 }
 
+//CTRL_F Toggle to Search Mode 
+void ECEditorController :: SearchOn(){
+    //Toggle On
+    document.Search = true;
+    document.Find = true;
+    document.statusBar.pop_back();
+
+    //Update StatusRow
+    window.ClearStatusRows();
+    window.AddStatusRow( "Search: ", "Page: " + to_string(page+1), true);
+}
+
+void ECEditorController :: SearchOff(){
+    //Toggle Off
+    document.Search = false;
+    document.Find = false;
+    SearchClear();
+    document.statusBar.clear();
+    document.statusBar.push_back(' ');
+
+    //Update StatusRow
+    window.ClearStatusRows();
+    window.AddStatusRow( "Insert: ", "Page: " + to_string(page+1), true);
+}
+
+//DELETE characters from the search needle in the status bar
+void ECEditorController :: SearchBackspace(){
+
+    //Remove char if there is one in the status bar
+    if (document.statusBar.size() > 0){
+        window.InitRows(); 
+
+        //Remove last character highlight
+        if (document.statusBar.size() == 1){
+            SearchClear(string(1, document.statusBar[0]));
+        }
+
+        //Remove Char
+        document.statusBar.pop_back();
+        ViewLayout();
+        window.Refresh();
+    }
+}
+
+//ENTER, replace search word with replace word
+void ECEditorController :: SearchEnter(){
+
+    // Get slash index
+    auto iter = find(document.statusBar.begin(),document.statusBar.end(), '/');
+
+    //if no slash is found, there was an invalid search, exit search mode
+    if ( iter == document.statusBar.end()){
+        SearchOff();
+        return;
+    }
+    else{
+        //Replace search_Word with replace_word
+        int index = iter - document.statusBar.begin();
+        string search_word(document.statusBar.begin(), document.statusBar.begin() + index);
+        string replace_word(document.statusBar.begin() + index + 1, document.statusBar.end());
+
+        SearchReplace(search_word, replace_word);
+    }
+}
+
+//replace search_word with replace_word
+void ECEditorController :: SearchReplace(string search_word, string replace_word){
+    //Clear highlight when you press ENTER
+    window.InitRows();
+    SearchClear(search_word);
+
+    //Replace
+    int page_start = (page * window.GetRowNumInView());
+    DocCtrl.RemoveWords(search_word, replace_word, page_start, page_start+window.GetRowNumInView());
+
+    //make replace_word the new search_word
+    document.Find = true;
+    document.statusBar.clear();
+    for (char letter : replace_word){
+        document.statusBar.push_back(letter);
+    }
+
+    //refresh view
+    ViewLayout();
+    window.Refresh();
+}
+
+//In SearchMode insert the search needle in the status bar
+void ECEditorController :: SearchInput(int key){
+    window.InitRows(); 
+    document.statusBar.push_back(char(key));
+
+    //Refresh the view
+    ViewLayout();
+    window.Refresh();
+}
+
+//Find and highlight the searchword
+void ECEditorController :: SearchFind(){
+
+    int page_start = (page * window.GetRowNumInView());
+
+    //No text to highlight
+    if (document.statusBar.size() == 0){
+        return;
+    }
+
+    //Clear current highlight
+    for (auto character : document.statusBar){
+        SearchClear(string(1, character));
+    }
+
+    //Highlight
+    string status_text(document.statusBar.begin(), document.statusBar.end());
+    vector<int> indexes; //indexes where to highlight
+
+    for (int row = page_start; row < page_start+window.GetRowNumInView(); row++){
+        indexes.clear();
+        indexes = document.SearchColor(row, status_text);
+
+        if (indexes.size() == 0){
+            continue;
+        }
+        for (int col : indexes){
+            window.SetColor(row - page_start, col, col+status_text.size()-1, TEXT_COLOR_GREEN);
+            
+        }  
+    }
+}
+
+//Clear the highlight from the search string.
+void ECEditorController :: SearchClear(string text){
+
+    int page_start = (page * window.GetRowNumInView());
+ 
+    //if no specified text, clear highlight using string in statusBar
+    if (text == ""){
+        string status_text(document.statusBar.begin(), document.statusBar.end());
+        vector<int> indexes;
+
+        for (int row = page_start; row < page_start+window.GetRowNumInView(); row++){
+            indexes.clear();
+            indexes = document.SearchColor(row, status_text);
+
+            if (indexes.size() == 0){
+                continue;
+            }
+            for (int col : indexes){
+                window.SetColor(row - page_start, col, col+status_text.size()-1, TEXT_COLOR_DEF);
+            
+            }  
+        }
+    }
+    else{
+        //if there is a string text then clear highlight for the passed in text 
+        vector<int> indexes;
+
+        for (int row = page_start; row < page_start+window.GetRowNumInView(); row++){
+            indexes.clear();
+            indexes = document.SearchColor(row, text);
+
+            if (indexes.size() == 0){
+                continue;
+            }
+            for (int col : indexes){
+                window.SetColor(row - page_start, col, col+text.size()-1, TEXT_COLOR_DEF);
+            
+            }  
+        }
+    } 
+}
+
+//CTRL_Z undo most recent model modification
+void ECEditorController :: Undo(){
+    int cursorY = window.GetCursorY();
+
+    //UNDO
+    window.InitRows();
+    DocCtrl.Undo();
+
+    //Cursor Managment
+    window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
+    if (cursorY > document.GetLengthRows()){
+        window.SetCursorY(document.GetLengthRows());
+    }
+
+    //Refresh the view
+    ViewLayout();
+    window.Refresh();
+}
+
+//CTRL_R re-do the most recent consecutive undo()'s
+void ECEditorController :: Redo(){
+    int cursorY = window.GetCursorY();
+
+    //REDO
+    window.InitRows();
+    DocCtrl.Redo();
+
+    //Cursor Managment
+    window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY));
+    if (cursorY > document.GetLengthRows()){
+        window.SetCursorY(document.GetLengthRows());
+    }
+
+    //Refresh the view
+    ViewLayout();
+    window.Refresh();
+
+}
+
+//ENTER key behavior
 //EnterKey Function Handles:
 //MidLine Enter
 //Endline Enter
 //Frontline Enter
-
 void ECEditorController :: Enter(){
     
     string empty_line = "";
     int cursorX = window.GetCursorX();
     int cursorY = window.GetCursorY();
 
-    //Midline Enter [WORKING]
+    //Midline Enter 
     if(cursorX < document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY) && cursorX != 0){
         window.InitRows(); 
         string remaining_line = "";
@@ -224,19 +421,19 @@ void ECEditorController :: Enter(){
 
     }
     else{
-        //Endline Enter Function [WORKING]
-        //***********************
-        //PAGE LAYOUT MANAGMENT *
-        //***********************
-        //-1 because it needs to account for index vs size
+        //Endline Enter 
         if (cursorY == window.GetRowNumInView()-1){
+            //Enter at the end of the current page
+
             window.InitRows();
             
             //Increase Pages
             page += 1; 
 
+            //Add a new line to top of next page
             NewLine(0, empty_line);
 
+            //Cursor Managment 
             window.SetCursorX(0);
             window.SetCursorY(0);
 
@@ -244,10 +441,10 @@ void ECEditorController :: Enter(){
 
         }
         else if(cursorX == document.GetLengthColumns((page * window.GetRowNumInView()) + cursorY)){
-            //Endline Enter
+            //Endline Enter mid document
             window.InitRows(); 
 
-            //Add a row on top
+            //Add a row below
             NewLine(window.GetCursorY()+1, empty_line);
 
             window.SetCursorX(0);
@@ -268,24 +465,25 @@ void ECEditorController :: Enter(){
     }
 }
 
-//midline Enter
+//ENTER in midline, split the text
+//midline Enter merges two commands DocCtrl.NewLine() and DocCtrl.RemoveTextAt()
 void ECEditorController :: MidLineEnter(int cursorX, int cursorY, string remaining_line){
+    //row for NewLine()
+    int row_num_one = (page * window.GetRowNumInView())+window.GetCursorY()+1;
 
-    DocCtrl.combine((page * window.GetRowNumInView())+window.GetCursorY()+1,remaining_line, (page * window.GetRowNumInView()) + cursorY, cursorX);
-
-    /*
-    DocCtrl.NewLine((page * window.GetRowNumInView())+window.GetCursorY()+1, remaining_line);
-    //Remove Remaining text from current line 
-    DocCtrl.RemoveTextAt((page * window.GetRowNumInView()) + cursorY, cursorX);
-    */
+    //row for RemoveTextAt()
+    int row_num_two = (page * window.GetRowNumInView()) + cursorY;
     
+    //DocumentCtrl combines these two commands for Undo() & Redo()
+    DocCtrl.combine(row_num_one, remaining_line, row_num_two, cursorX);    
 }
 
-//Create a new Line
+//Add a Newline to the Model and View
 void ECEditorController :: NewLine(int row, string key){
     DocCtrl.NewLine((page * window.GetRowNumInView()) + row, key);
 }
 
+//DELETE key behavior
 //Delete Chars and Lines
 void ECEditorController :: Backspace(){
 
@@ -335,36 +533,62 @@ void ECEditorController :: Backspace(){
     
     //Refresh the view
     ViewLayout();
-
 }
 
-//midline Enter
+//DELETE at front of line, merge lines; Combine InsertTextAt() & RemoveLine() commands
 void ECEditorController :: BackspaceMege(int prev_row, int prev_column, string prev_string, int del_row){
-
     DocCtrl.combineBackspace(prev_row, prev_column, prev_string, del_row);
-
-    /*
-        //Append current row to previous Row
-        DocCtrl.InsertTextAt(prev_row, prev_column, prev_string);
-
-        //delete current row
-        DocCtrl.RemoveLine((page * window.GetRowNumInView()) + cursorY);
-    
-    */
-    
 }
+
+//Update the view & model with text 
+void ECEditorController :: CharUpdate(int key){
+
+        window.InitRows(); //clear view
+        string text = string(1, char(key));    
+        InsertText(window.GetCursorY(), window.GetCursorX(), text);
     
-//Move the cursor Left
+        //Refresh the view
+        ViewLayout();
+        window.Refresh();
+}
+
+//CharUpdate Helper function
+void ECEditorController :: InsertText(int row, int column, string key){
+    DocCtrl.InsertTextAt((page * window.GetRowNumInView()) + row, column, key);
+    window.SetCursorX(column + 1);
+}
+
+
+//ARROW_LEFT behavior
 void ECEditorController :: cursorLeft(){
 
     int cursorX = window.GetCursorX();
     int cursorY = window.GetCursorY();
+    int curr_row = (page * window.GetRowNumInView()) + cursorY;
 
-    if (cursorX == 0 && cursorY != 0){
+    //press left at top of page & there is a previous page
+    if(cursorY == 0 && cursorX == 0 && page != 0){
+            //clear view
+            window.InitRows();
+            
+            //decrease current page
+            page -= 1; 
+            
+            //if last line from previous page has text, set cursor accordingly
+            window.SetCursorY(window.GetRowNumInView()-1);
+            window.SetCursorX(document.GetLengthColumns((page * window.GetRowNumInView()) + (window.GetRowNumInView()-1)));
+            
+
+            //Refresh the view
+            ViewLayout();
+    }
+    else if (cursorX == 0 && cursorY != 0){
+        //if left pressed at beginning of line mid-document, move up one line
         window.SetCursorY(cursorY-1);
-        window.SetCursorX(document.GetLengthColumns(cursorY-1));
+        window.SetCursorX(document.GetLengthColumns(curr_row-1));
     }
     else if(cursorX > 0){
+        //if left pressed in a sentence, move cursor to left
         window.SetCursorX(cursorX-1);
     }
     else{
@@ -372,18 +596,34 @@ void ECEditorController :: cursorLeft(){
     }
 }
 
-//Move the cursor Right
+//ARROW_RIGHT behavior
 void ECEditorController :: cursorRight(){
 
     int cursorX = window.GetCursorX();
     int cursorY = window.GetCursorY();
+    int curr_row = (page * window.GetRowNumInView()) + cursorY;
 
-    if (cursorX == document.GetLengthColumns(cursorY) && cursorY != document.GetLengthRows()-1){
+    //Press ARROW_RIGHT at end of current page and line; Go to next page
+    if ( cursorX == document.GetLengthColumns(curr_row) && curr_row == window.GetRowNumInView()-1 && curr_row != document.GetLengthRows()){
+        
+        window.InitRows();
+            
+        page += 1; 
+
+        window.SetCursorY(0);
+        window.SetCursorX(0);
+
+        ViewLayout();
+
+    }
+    else if (cursorX == document.GetLengthColumns(curr_row) && curr_row != document.GetLengthRows()-1){
+        //if right pressed at end of line mid-document; move down one line
         window.SetCursorY(cursorY+1);
         window.SetCursorX(0);
     
     }
-    else if(cursorX < document.GetLengthColumns(cursorY)){
+    else if(cursorX < document.GetLengthColumns(curr_row)){
+        //right pressed mid-line; move cursor to right 
         window.SetCursorX(cursorX + 1);
     }
     else{
@@ -392,7 +632,7 @@ void ECEditorController :: cursorRight(){
     
 }
 
-//Move the cursor Up 
+//ARROW_UP behavior
 void ECEditorController :: cursorUp(){
     
     int cursorY = window.GetCursorY();
@@ -428,24 +668,25 @@ void ECEditorController :: cursorUp(){
 
 }
 
-//Move the cursor Down 
+//ARROW_DOWN behavior
 void ECEditorController :: cursorDown(){
 
     int cursorY = window.GetCursorY();
+    int curr_row = (page * window.GetRowNumInView()) + cursorY;
 
-    //***********************
-    //PAGE LAYOUT MANAGMENT *
-    //***********************
-    if (cursorY == window.GetRowNumInView()-1 && cursorY*page != document.GetLengthRows()){
+    //if at bottom of page and there is a next page
+    if (cursorY == window.GetRowNumInView()-1 && curr_row != document.GetLengthRows()){
         window.InitRows();
             
+        //decrease current page    
         page += 1; 
 
         if (document.GetLengthColumns(page * window.GetRowNumInView()) == 0){
+            //set cursor to beginning of next line if the line is null
             window.SetCursorY(0);
             window.SetCursorX(0);
         }
-        else{
+        else{     
             window.SetCursorY(0);
             window.SetCursorX(document.GetLengthColumns(page * window.GetRowNumInView()));
         }
@@ -453,28 +694,12 @@ void ECEditorController :: cursorDown(){
         ViewLayout();
 
     }
-    else if(cursorY < document.GetLengthRows()){
-        //Regular DownMovement
+    else if(curr_row+1 < document.GetLengthRows()){
+        //Standard down cursor movement
         window.SetCursorY(cursorY + 1);
-        window.SetCursorX(document.GetLengthColumns(((page * window.GetRowNumInView()) + cursorY) + 1));
+        window.SetCursorX(document.GetLengthColumns(curr_row + 1));
 
     }
 }
 
-//Handle insertig text to the document
-void ECEditorController :: CharUpdate(int key){
-    window.InitRows(); //clear view
-    string text = string(1, char(key));    
-    InsertText(window.GetCursorY(), window.GetCursorX(), text);
-    
-    //Refresh the view
-    ViewLayout();
-    
-    window.Refresh();
-}
 
-//CharUpdate Helper function
-void ECEditorController :: InsertText(int row, int column, string key){
-    DocCtrl.InsertTextAt((page * window.GetRowNumInView()) + row, column, key);
-    window.SetCursorX(column + 1);
-}
