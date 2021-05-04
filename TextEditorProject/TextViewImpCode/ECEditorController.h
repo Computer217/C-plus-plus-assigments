@@ -35,14 +35,14 @@ public:
     void SearchOff(); //ESC Toggle to insert Mode
     void SearchBackspace(); //DELETE characters from the search needle in the status bar
     void SearchEnter(); //ENTER, replace search word with replace word
-    void SearchReplace(string search_word, string replace_word); //replace search word with replace word
+    void SearchReplace(string search_word, string replace_word); //replace search word with replace word (Command)
     void SearchInput(int key); //In SearchMode insert the search needle in the status bar
     void SearchFind(); //Find and highlight the searchword
     void SearchClear(string text = ""); //Clear the highlight from the search string.
 
-    //InsertMode Methods
+    //InsertMode Methods (Commands)
     void Undo(); //CTRL_Z undo most recent model modification
-    void Redo(); //CTRL_R re-do the most recent consecutive undo()'s
+    void Redo(); //CTRL_Y re-do the most recent consecutive undo()'s
     void Enter(); //ENTER key behavior
     void MidLineEnter(int cursorX, int cursorY, string remaining_line); //ENTER in midline, split the text
     void NewLine(int row, string key); //Add a Newline to the Model and View

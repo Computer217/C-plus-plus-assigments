@@ -98,7 +98,7 @@ void ECEditorController :: Update(){
         else if (key == CTRL_Z){
             this->Undo();
         }
-        else if (key == CTRL_R){
+        else if (key == CTRL_Y){
             this->Redo();
         }
         else if (key == CTRL_F){
@@ -231,9 +231,8 @@ void ECEditorController :: SearchEnter(){
     // Get slash index
     auto iter = find(document.statusBar.begin(),document.statusBar.end(), '/');
 
-    //if no slash is found, there was an invalid search, exit search mode
+    //if no slash is found, there was an invalid search
     if ( iter == document.statusBar.end()){
-        SearchOff();
         return;
     }
     else{
@@ -372,7 +371,7 @@ void ECEditorController :: Undo(){
     window.Refresh();
 }
 
-//CTRL_R re-do the most recent consecutive undo()'s
+//CTRL_Y re-do the most recent consecutive undo()'s
 void ECEditorController :: Redo(){
     int cursorY = window.GetCursorY();
 
@@ -604,7 +603,7 @@ void ECEditorController :: cursorRight(){
     int curr_row = (page * window.GetRowNumInView()) + cursorY;
 
     //Press ARROW_RIGHT at end of current page and line; Go to next page
-    if ( cursorX == document.GetLengthColumns(curr_row) && curr_row == window.GetRowNumInView()-1 && curr_row != document.GetLengthRows()){
+    if ( cursorX == document.GetLengthColumns(curr_row) && cursorY == window.GetRowNumInView()-1 && curr_row != document.GetLengthRows()){
         
         window.InitRows();
             
@@ -617,6 +616,7 @@ void ECEditorController :: cursorRight(){
 
     }
     else if (cursorX == document.GetLengthColumns(curr_row) && curr_row != document.GetLengthRows()-1){
+
         //if right pressed at end of line mid-document; move down one line
         window.SetCursorY(cursorY+1);
         window.SetCursorX(0);
